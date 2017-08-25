@@ -1745,7 +1745,7 @@ class rfidiot:
 			#	return(self.frosch(self.FR_HT1_Read_Page,self.FR_PLAIN + chr(block)))
 			if self.tagtype == self.HITAG2:
 				return(self.frosch(self.FR_HT2_Write_Page,chr(block) + self.ToBinary(data)))
-		if self.readertype == self.READER_ACG:
+		elif self.readertype == self.READER_ACG:
 			self.ser.write('w%02x%s' % (block,data))
 			x= self.ser.readline()[:-2]
 			if x == string.upper(data):
@@ -1753,7 +1753,7 @@ class rfidiot:
 				return True
 			self.errorcode= x
 			return False
-		if self.readertype == self.READER_PCSC:
+		elif self.readertype == self.READER_PCSC:
 			apdu= []
 			apdu += self.PCSC_APDU['UPDATE_BLOCK']
 			hexblock= '%04x' % block
@@ -1762,6 +1762,8 @@ class rfidiot:
 			apdu.append('%02x' % (len(data) / 2)) # le
 			apdu.append(data)
 			return self.pcsc_send_apdu(apdu)
+		else:
+			raise RuntimeError('Not implemented')
 	def writevalueblock(self,block,data):
 		self.ser.write('wv%02x%s' % (block,data))
                 x= self.ser.readline()[:-2]
