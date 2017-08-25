@@ -33,7 +33,7 @@ import time
 try:
 	import readline
 	readline  # make ? happy
- except ImportError:
+except ImportError:
 	# no readline on Windows
 	pass
 import string
