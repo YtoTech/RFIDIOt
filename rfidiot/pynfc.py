@@ -30,7 +30,12 @@ import ctypes.util
 import binascii
 import logging
 import time
-import readline
+try:
+	import readline
+	readline  # make ? happy
+ except ImportError:
+	# no readline on Windows
+	pass
 import string
 import rfidiotglobals
 
@@ -238,7 +243,7 @@ class ISO14443A(object):
 			self.atr = ""
 		self.atqa = "".join(["%02X" % x for x in ti.abtAtqa])
 		self.sak = "%02X" % ti.btSak
-	
+
 	def __str__(self):
 		rv = "ISO14443A(uid='%s', atr='%s', atqa='%s', sak='%s')" % (self.uid, self.atr, self.atqa, self.sak)
 		return rv
@@ -263,7 +268,7 @@ class JEWEL(object):
 		self.atr = ""        # idem
 		self.atqa = self.btSensRes
 		self.sak = ""
-	
+
 	def __str__(self):
 		rv = "JEWEL(btSensRes='%s', btId='%s')" % (self.btSensRes, self.btId)
 		return rv
@@ -274,8 +279,8 @@ class NFC(object):
 		#self.LIB = "/usr/local/lib/libnfc.so"
 		#self.LIB = "/usr/local/lib/libnfc_26102009.so.0.0.0"
 		#self.LIB = "./libnfc_nvd.so.0.0.0"
-		#self.LIB = "./libnfc_26102009.so.0.0.0"		
-		#self.LIB = "/data/RFID/libnfc/libnfc-svn-1.3.0/src/lib/.libs/libnfc.so"		
+		#self.LIB = "./libnfc_26102009.so.0.0.0"
+		#self.LIB = "/data/RFID/libnfc/libnfc-svn-1.3.0/src/lib/.libs/libnfc.so"
 		self.device = None
 		self.context = ctypes.POINTER(ctypes.c_int)()
 		self.poweredUp = False
@@ -285,7 +290,7 @@ class NFC(object):
 		if rfidiotglobals.Debug:
 			self.log.debug("libnfc %s" % self.LIBNFC_VER)
 		self.configure(nfcreader)
-	
+
 	def __del__(self):
 		self.deconfigure()
 
@@ -349,7 +354,7 @@ class NFC(object):
 		if nfcreader != None:
 			target=  self.listreaders(nfcreader)
 		else:
-			target= None 
+			target= None
 		if target:
 			target= ctypes.byref(target)
 		self.device = self.libnfc.nfc_open(self.context, target)
@@ -358,15 +363,15 @@ class NFC(object):
 			if self.device == None:
 				self.log.error("Error opening NFC reader")
 			else:
-				self.log.debug("Opened NFC reader " + self.LIBNFC_READER)	
+				self.log.debug("Opened NFC reader " + self.LIBNFC_READER)
 			self.log.debug("Initing NFC reader")
-		self.libnfc.nfc_initiator_init(self.device)		
+		self.libnfc.nfc_initiator_init(self.device)
 		if rfidiotglobals.Debug:
 			self.log.debug("Configuring NFC reader")
 
   		# Drop the field for a while
 		self.libnfc.nfc_device_set_property_bool(self.device,NP_ACTIVATE_FIELD,False);
-  	
+
   		# Let the reader only try once to find a tag
   		self.libnfc.nfc_device_set_property_bool(self.device,NP_INFINITE_SELECT,False);
   		self.libnfc.nfc_device_set_property_bool(self.device,NP_HANDLE_CRC,True);
@@ -375,7 +380,7 @@ class NFC(object):
   		# Enable field so more power consuming cards can power themselves up
   		self.libnfc.nfc_device_set_property_bool(self.device,NP_ACTIVATE_FIELD,True);
 
-		
+
 	def deconfigure(self):
 		if self.device != None:
 			if rfidiotglobals.Debug:
@@ -387,19 +392,19 @@ class NFC(object):
 				self.log.debug("Disconnected NFC reader")
 			self.device = None
 			self.context = ctypes.POINTER(ctypes.c_int)()
-	
+
 	def powerOn(self):
 		self.libnfc.nfc_device_set_property_bool(self.device, NP_ACTIVATE_FIELD, True)
 		if rfidiotglobals.Debug:
 			self.log.debug("Powered up field")
 		self.poweredUp = True
-	
+
 	def powerOff(self):
 		self.libnfc.nfc_device_set_property_bool(self.device, NP_ACTIVATE_FIELD, False)
 		if rfidiotglobals.Debug:
 			self.log.debug("Powered down field")
 		self.poweredUp = False
-	
+
 	def selectISO14443A(self):
 		"""Detect and initialise an ISO14443A card, returns an ISO14443A() object."""
 		if rfidiotglobals.Debug:
@@ -463,17 +468,17 @@ class NFC(object):
 
 	def sendAPDU(self, apdu):
 		apdu= "".join([x for x in apdu])
-		txData = []		
+		txData = []
 		for i in range(0, len(apdu), 2):
 			txData.append(int(apdu[i:i+2], 16))
-	
+
 		txAPDU = ctypes.c_ubyte * len(txData)
 		tx = txAPDU(*txData)
 
 		rxAPDU = ctypes.c_ubyte * MAX_FRAME_LEN
 		rx = rxAPDU()
-	
-		if rfidiotglobals.Debug:	
+
+		if rfidiotglobals.Debug:
 			self.log.debug("Sending %d byte APDU: %s" % (len(tx),"".join(["%02x" % x for x in tx])))
 		rxlen = self.libnfc.nfc_initiator_transceive_bytes(self.device, ctypes.byref(tx), ctypes.c_size_t(len(tx)), ctypes.byref(rx), ctypes.c_size_t(len(rx)), -1)
 		if rfidiotglobals.Debug:
