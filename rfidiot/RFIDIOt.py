@@ -1,9 +1,9 @@
 #  RFIDIOt.py - RFID IO tools for python
 # -*- coding: iso-8859-15 -*-
-# 
+#
 #  Adam Laurie <adam@algroup.co.uk>
 #  http://rfidiot.org/
-# 
+#
 #  This code is copyright (c) Adam Laurie, 2006,7,8,9 All rights reserved.
 #  For non-commercial use only, the following terms apply - for all other
 #  uses, please contact the author:
@@ -86,17 +86,14 @@ class rfidiot:
 				try:
 					self.pcsc_protocol= smartcard.scard.SCARD_PROTOCOL_T1
 				except:
-					print 'Could not find PCSC daemon, try with option -n if you don\'t have a reader'
-					os._exit(True)
+					raise RuntimeError('Could not find PCSC daemon, try with option -n if you don\'t have a reader')
 				# select the reader specified
 				try:
 					self.pcsc= smartcard.System.readers()
 				except:
-					print 'Could not find PCSC daemon, try with option -n if you don\'t have a reader'
-					os._exit(True)
+					raise RuntimeError('Could not find PCSC daemon, try with option -n if you don\'t have a reader')
 				if readernum >= len(self.pcsc):
-					print 'There is no such reader #%i, PCSC sees only %i reader(s)' % (readernum, len(self.pcsc))
-					os._exit(True)
+					raise RuntimeError('There is no such reader #%i, PCSC sees only %i reader(s)' % (readernum, len(self.pcsc)))
 				try:
 					self.readername= self.pcsc[readernum].name
 					self.pcsc_connection= self.pcsc[readernum].createConnection()
@@ -106,8 +103,7 @@ class rfidiot:
 						observer=ConsoleCardConnectionObserver()
 						self.pcsc_connection.addObserver( observer )
 				except:
-					print 'Could not create connection to %s' % self.readername
-					os._exit(True)
+					raise RuntimeError('Could not create connection to %s' % self.readername)
 				# determine PCSC subtype
 				if string.find(self.readername,'OMNIKEY') == 0:
 					self.readersubtype= self.READER_OMNIKEY
@@ -152,8 +148,7 @@ class rfidiot:
 						if hresult != smartcard.scard.SCARD_S_SUCCESS:
 							print 'Failed to control: ' + smartcard.scard.SCardGetErrorMessage(hresult)
 							if hresult == smartcard.scard.SCARD_E_NOT_TRANSACTED:
-								print 'Did you set DRIVER_OPTION_CCID_EXCHANGE_AUTHORIZED in ifdDriverOptions in libccid_Info.plist?'
-							os._exit(True)
+								raise RuntimeError('Did you set DRIVER_OPTION_CCID_EXCHANGE_AUTHORIZED in ifdDriverOptions in libccid_Info.plist?')
 					self.pcsc_atr= self.ListToHex(newstates[0][2])
 					pass
 				if self.readersubtype == self.READER_ACS:
@@ -168,9 +163,9 @@ class rfidiot:
 				self.readername = "Android"
 			elif self.readertype == self.READER_NONE:
 				self.readername = 'none'
-			else:	
+			else:
 				# frosch always starts at 9600 baud - need to add code to test for selected rate and
-				# switch if required. 
+				# switch if required.
 				try:
 					import serial
 					self.ser = serial.Serial(port, baud, timeout=to)
@@ -178,8 +173,7 @@ class rfidiot:
 					self.ser.flushInput()
 					self.ser.flushOutput()
 				except:
-					print 'Could not open serial port %s' % port
-					os._exit(True)
+					raise RuntimeError('Could not open serial port %s' % port)
 	#
 	# variables
 	#
@@ -579,7 +573,7 @@ class rfidiot:
 			 'fc':'Timeout',\
 			 'fd':'No TAG present!',\
 			 'ff':'Serial port fail or wrong mode'}
-	# 
+	#
 	# frosch constants
 	#
 	FR_BAUD_RATE= {   9600:chr(0x01),\
@@ -805,27 +799,23 @@ class rfidiot:
 						if self.acs_get_firmware_revision():
 							print '          (Firmware: %s, ' % self.ToBinary(self.data),
 						else:
-							print "\ncan't get firmware revision!"
-							os._exit(True)
+							raise RuntimeError("\ncan't get firmware revision!")
 						if self.acs_get_sam_serial():
 							print 'SAM Serial: %s, ' % self.data,
 						else:
-							print "\ncan't get SAM Serial Number!"
-							os._exit(True)
+							raise RuntimeError("\ncan't get SAM Serial Number!")
 						if self.acs_get_sam_id():
 							print 'SAM ID: %s)' % self.ToBinary(self.data)
 						else:
-							print "\ncan't get SAM Serial Number!"
-							os._exit(True)
+							raise RuntimeError("\ncan't get SAM Serial Number!")
 				elif self.readersubtype == self.READER_ACS and self.pcsc_protocol == smartcard.scard.SCARD_PROTOCOL_T1:
 					if self.acs_get_firmware_revision():
 						print '          (Firmware: %s)' % self.ToBinary(self.data)
 					else:
-						print "\ncan't get firmware revision!"
-						os._exit(True)
-			if self.readertype == self.READER_LIBNFC:			
+						raise RuntimeError("\ncan't get firmware revision!")
+			if self.readertype == self.READER_LIBNFC:
 				print 'LibNFC', self.readername
-			if self.readertype == self.READER_ANDROID:			
+			if self.readertype == self.READER_ANDROID:
 				print 'Android Reader'
 			print
 	#
@@ -851,19 +841,18 @@ class rfidiot:
 			if self.frosch(self.FR_RWD_HF_Reset,''):
 				return True
 			else:
-				print self.FROSCH_Errors[self.errorcode]
-				os._exit(True)
+				raise RuntimeError(self.FROSCH_Errors[self.errorcode])
 		if self.readertype == self.READER_PCSC:
 			if self.readersubtype == self.READER_ACS:
-				self.acs_power_off()			
-				self.acs_power_on()			
+				self.acs_power_off()
+				self.acs_power_on()
 			self.data= 'A PCSC Reader (need to add reset function!)'
 		if self.readertype == self.READER_LIBNFC:
 			self.nfc.powerOff()
 			self.nfc.powerOn()
 		if self.readertype == self.READER_ANDROID:
 			self.android.reset()
-			
+
 	def version(self):
 		if self.readertype == self.READER_ACG:
 			self.ser.write('v')
@@ -871,19 +860,16 @@ class rfidiot:
 				self.data= self.ser.readline()[:-2]
 				self.readername= self.data
 			except:
-				print '\nReader not responding - check baud rate'
-				os._exit(True)
+				raise RuntimeError('\nReader not responding - check baud rate')
 			# check for garbage data (wrong baud rate)
 			if not self.data or self.data[0] < ' ' or self.data[0] > '~':
-				print '\nGarbage received from reader - check baud rate'
-				os._exit(True)
+				raise RuntimeError('\nGarbage received from reader - check baud rate')
 			return True
 		if self.readertype == self.READER_FROSCH:
 			if self.frosch(self.FR_RWD_Get_Version,''):
 				return True
 			else:
-				print self.FROSCH_Errors[self.errorcode]
-				os._exit(True)
+				raise RuntimeError(self.FROSCH_Errors[self.errorcode])
 		if self.readertype == self.READER_ANDROID:
 			print 'Android version: ', self.android.VERSION
 	def id(self):
@@ -940,7 +926,7 @@ class rfidiot:
 				return True
 		if self.readertype == self.READER_FROSCH:
 			if type == self.EM4x02:
-				return self.frosch(self.FR_HT2_Read_Miro,'')			
+				return self.frosch(self.FR_HT2_Read_Miro,'')
 			if type == self.EM4x05:
 				return self.frosch(self.FR_HT2_Read_PublicB,'')
 		return False
@@ -1021,7 +1007,7 @@ class rfidiot:
 				# start a new connection in case TAG has been switched
 				self.pcsc_connection.disconnect()
 				self.pcsc_connection.connect()
-				time.sleep(0.6)	
+				time.sleep(0.6)
 				self.pcsc_atr= self.ListToHex(self.pcsc_connection.getATR())
 				atslen= 2 * int(self.pcsc_atr[3],16)
 				self.pcsc_ats= self.pcsc_atr[8:8 + atslen]
@@ -1102,7 +1088,7 @@ class rfidiot:
 					return False
 			except ValueError:
 				self.errorcode = 'Error selecting card using LIBNFC' + e
-		
+
 		if self.readertype == self.READER_ANDROID:
 			try:
 				if self.DEBUG:
@@ -1163,10 +1149,10 @@ class rfidiot:
 	# ACS specific commands
 	#
 	# note there are 2 different types of ACS command:
-	#   
+	#
 	#    standard APDU for reader - acs_send_reader_apdu
 	#    pseudo APDU for contact or contactless card - acs_send_apdu
-	#	
+	#
 	# contact and contacless commands are wrapped and passed to the NXP PN532 for processing
 	def acs_send_apdu(self,apdu):
 		"ACS send APDU to contacless card"
@@ -1245,7 +1231,7 @@ class rfidiot:
 		myapdu= self.HexArraysToArray(apdu)
 		# build pseudo command for ACS 14443-A via NXP PN532
 		lc= '%02x' % (len(myapdu) + len(self.PCSC_APDU['ACS_14443_A']))
-		apduout= self.HexArrayToList(self.PCSC_APDU['ACS_DIRECT_TRANSMIT']+[lc]+self.PCSC_APDU['ACS_14443_A']+myapdu)		
+		apduout= self.HexArrayToList(self.PCSC_APDU['ACS_DIRECT_TRANSMIT']+[lc]+self.PCSC_APDU['ACS_14443_A']+myapdu)
 		result, sw1, sw2= self.acs_transmit_apdu(apduout)
 		self.errorcode= '%02X%02X' % (sw1,sw2)
 		if self.errorcode == self.ISO_OK:
@@ -1263,7 +1249,7 @@ class rfidiot:
 			return True
 		else:
 			self.data= ''
-			return False	
+			return False
 	def acs_rats(self,control):
 		"ACS RATS on/off"
 		if control:
@@ -1305,8 +1291,7 @@ class rfidiot:
 				self.data= self.data[6:]
 			self.errorcode= self.ISO_OK
 			return True
-		print "Can't read %s blocks" % self.ACS_TAG_TYPES[self.tagtype]
-		os._exit(True)
+		raise RuntimeError("Can't read %s blocks" % self.ACS_TAG_TYPES[self.tagtype])
 	def acs_get_sam_serial(self):
 		"ACS get SAM serial"
 		return self.acs_send_apdu(self.PCSC_APDU['ACS_GET_SAM_SERIAL'])
@@ -1453,11 +1438,8 @@ class rfidiot:
 	def iso_7816_fail(self,code):
 		"print 7816 failure code and exit"
 		if code == self.ACG_FAIL:
-			print "Application not implemented!"
-			os._exit(True)
-		print "Failed - reason code " + code + " (" + self.ISO7816ErrorCodes[code] + ")"
-		print
-		os._exit(True)
+			raise RuntimeError("Application not implemented!")
+		raise RuntimeError("Failed - reason code " + code + " (" + self.ISO7816ErrorCodes[code] + ")")
 	def iso_7816_get_challenge(self,length):
         	"get random challenge - challenge will be in .data"
         	ins= 'GET_CHALLENGE'
@@ -1486,7 +1468,7 @@ class rfidiot:
 		apdustring= ''
 		if self.readersubtype == self.READER_ACS:
 			return self.acs_send_apdu(apdu)
-			
+
 		if self.readertype == self.READER_ANDROID:
 			result = self.android.sendAPDU(apdu)
 			self.data = result[0:-4]
@@ -1552,7 +1534,7 @@ class rfidiot:
 			print 'sending: ' + 't' + '%02x' % dlength + option + command
 		self.ser.write('t' + '%02x' % dlength + option + command)
 		# need check for 'le' length as well
-		ret= self.ser.readline()[:-2] 
+		ret= self.ser.readline()[:-2]
 		if self.DEBUG:
 			print 'received:',ret
 		self.errorcode= ret[len(ret) - 4:len(ret)]
@@ -1563,7 +1545,7 @@ class rfidiot:
 			self.data= ''
 		if self.errorcode == self.ISO_OK:
 			return True
-		return False	
+		return False
 #		return ret[4:len(ret) - 4]
 #		if not len(ret) / 2 == int(ret[0:2],16) + 1:
 #			return False
@@ -1580,9 +1562,9 @@ class rfidiot:
 		data= '0000000000000000'
 		if not self.send_apdu('','','','','80',ins,p1,p2,lc,data,''):
 			return False
-		return True			
+		return True
 	def login(self,sector,keytype,key):
-		"login to specified sector - returns True if successful, False if failed. If failure is due to an error, 'errorcode' will be set." 
+		"login to specified sector - returns True if successful, False if failed. If failure is due to an error, 'errorcode' will be set."
 		keytype= string.upper(keytype)
 		if keytype == 'A':
 			keytype= 'AA'
@@ -1623,7 +1605,7 @@ class rfidiot:
 				# send key to reader and store in global PCSC_KEYS if not already sent
 				apdu= []
 				apdu += self.PCSC_APDU['LOAD_KEY']
-				if self.readersubtype == self.READER_OMNIKEY:	
+				if self.readersubtype == self.READER_OMNIKEY:
 					keynum= len(self.PCSC_Keys)
 					apdu += self.PCSC_NON_VOLATILE # load key to non-volatile reader memory
 				else:
@@ -1642,7 +1624,7 @@ class rfidiot:
 					# readers with non-volatile memory only need the key once
 					self.PCSC_Keys[key]= keynum
 			else:
-				#use stored key if already sent	
+				#use stored key if already sent
 				keynum= self.PCSC_Keys[key]
 			# now try to authenticate
 			return self.authenticate(sector,keytype, keynum)
@@ -1684,9 +1666,9 @@ class rfidiot:
 	def readblock(self,block):
 		if self.readertype == self.READER_FROSCH:
 			if self.tagtype == self.HITAG1:
-				return(self.frosch(self.FR_HT1_Read_Page,self.FR_PLAIN + chr(block))) 	
+				return(self.frosch(self.FR_HT1_Read_Page,self.FR_PLAIN + chr(block)))
 			if self.tagtype == self.HITAG2:
-				return(self.frosch(self.FR_HT2_Read_Page,chr(block))) 	
+				return(self.frosch(self.FR_HT2_Read_Page,chr(block)))
 		if self.readertype == self.READER_ACG:
 			self.ser.write('r%02x' % block)
 			self.data= self.ser.readline()[:-2]
@@ -1699,7 +1681,7 @@ class rfidiot:
 			while count * 2 < len(self.data):
 				self.binary += chr(int(self.data[count * 2:(count * 2) + 2],16))
 				count += 1
-			return True	
+			return True
 		if self.readertype == self.READER_LIBNFC:
 			print "not implemented!"
 			return False
@@ -1760,9 +1742,9 @@ class rfidiot:
 	def writeblock(self,block,data):
 		if self.readertype == self.READER_FROSCH:
 			#if self.tagtype == self.HITAG1:
-			#	return(self.frosch(self.FR_HT1_Read_Page,self.FR_PLAIN + chr(block))) 	
+			#	return(self.frosch(self.FR_HT1_Read_Page,self.FR_PLAIN + chr(block)))
 			if self.tagtype == self.HITAG2:
-				return(self.frosch(self.FR_HT2_Write_Page,chr(block) + self.ToBinary(data))) 	
+				return(self.frosch(self.FR_HT2_Write_Page,chr(block) + self.ToBinary(data)))
 		if self.readertype == self.READER_ACG:
 			self.ser.write('w%02x%s' % (block,data))
 			x= self.ser.readline()[:-2]
@@ -1795,7 +1777,7 @@ class rfidiot:
 		bcc= self.frosch_bcc_out(command,commandlen + 1)
 		# send length + command + checkdigit
 		if self.DEBUG:
-			print 'Sending: ', 
+			print 'Sending: ',
 			self.HexPrint(chr(commandlen + 1) + command + chr(bcc))
 		self.ser.write(chr(commandlen + 1) + command + chr(bcc))
 		ret= ''
@@ -1822,8 +1804,7 @@ class rfidiot:
 				return False
 			print 'Frosch error! Checksum error:',
 			self.HexPrint(ret)
-			print 'Expected BCC: %02x' % bcc
-			os._exit(True)
+			raise RuntimeError('Expected BCC: %02x' % bcc)
 		status= ret[1]
 		if status == self.FR_NO_ERROR:
 			self.errorcode= ''
@@ -1848,7 +1829,7 @@ class rfidiot:
 			for x in range(len(data)):
 				bcc += ord(data[x])
 			bcc= int(bcc & 0xff)
-		return bcc	
+		return bcc
 	def frosch_bcc_in(self,data,seed):
 		return self.frosch_bcc(data[:len(data) - 1],seed)
 	def frosch_bcc_out(self,data,seed):
@@ -2153,7 +2134,7 @@ class rfidiot:
                 	adjusted += chr(y + (not parity % 2))
         	return adjusted
 	def DESKey(self,seed,type,length):
-		d= seed + type	
+		d= seed + type
 		kencsha= SHA.new(d)
 		k= kencsha.digest()
 		kp= self.DESParity(k)
@@ -2295,7 +2276,7 @@ class rfidiot:
 		rawid= appid + hexccode + hexglue + hexid
 		nibbleid= self.NibbleReverse(self.ToBinary(rawid))
 		hexout= self.HexReverse(self.ToHex(nibbleid))
-		return hexout 
+		return hexout
 	def FDXBIDPrint(self,data):
 		self.FDXBID(data)
         	print 'Application Identifier: ', self.FDXBAPP
@@ -2335,7 +2316,7 @@ class rfidiot:
 		for x in range(0,72,9):
 			out += y[x:x+8]
 		# ignore the rest - CRC etc.
-		return '%016x' % int(out,2)	
+		return '%016x' % int(out,2)
 	def PCSCGetTagType(self,atr):
 		"get currently selected tag type from atr"
 		if atr[8:12] == self.PCSC_CSC:
@@ -2347,7 +2328,7 @@ class rfidiot:
 		"print breakdown of HEX ATR"
 		print '    ATR:', data
 		if data[0:2].upper() == '3B':
-			print '         3B  Initial Header' 
+			print '         3B  Initial Header'
 		else:
 			print 'ATR not recognised!'
 			return False
@@ -2369,7 +2350,7 @@ class rfidiot:
 			print '                 80  Status indicator may be present (COMPACT-TLV object)'
 			print '                   4F  Application Identifier presence indicator'
 			applen= int(data[12:14],16)
-			print '                     %s  %d bytes follow' % (data[12:14] , applen) 
+			print '                     %s  %d bytes follow' % (data[12:14] , applen)
 			print '                 RID:  %s ' % data[14:24],
 			if data[14:24].upper() == self.PCSC_RID:
 				print 'PC/SC Workgroup'
@@ -2404,7 +2385,7 @@ class rfidiot:
 		space= ''
 		for x in range(spaces):
 			space += ' '
-			
+
 		print space + '   Checksum TCK: ' + data[-2:],
 		# calculate checksum excluding Initial Header and TCK
 		tck= 0
