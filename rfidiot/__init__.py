@@ -2,10 +2,10 @@
 
 
 #  RFIDIOtconfig.py - shared settings for local RFIDIOt
-# 
+#
 #  Adam Laurie <adam@algroup.co.uk>
 #  http://rfidiot.org/
-# 
+#
 #  This code is copyright (c) Adam Laurie, 2006,7,8,9 All rights reserved.
 #  For non-commercial use only, the following terms apply - for all other
 #  uses, please contact the author:
@@ -38,6 +38,10 @@ nogui= False
 # noinit flag (-n) set?
 noinit= False
 
+# TODO This interface is not really not adapted while calling from Python code
+# and not command-line. Create a proper CLI interface, that use the Python API.
+# Let the Python API be called from other code without burden and hidden states.
+#
 # options specified in this file can be overridden on the command line, or in static
 # files as defined below, in the following order:
 #   $(RFIDIOtconfig_opts)
@@ -140,19 +144,18 @@ else:
 # check for global override in environment variable
 OptsEnv= 'RFIDIOtconfig'
 if os.environ.has_key(OptsEnv):
-	try:	
+	try:
 		extraopts= string.split(os.environ[OptsEnv])
 	except:
 		print "*** warning: RFIDIOtconfig found in ENV, but no options specified!"
 # ignore if commented out
 if len(extraopts) > 0:
 	if extraopts[0][0] == '#':
-		extraopts= [] 
+		extraopts= []
 
 # 'args' will be set to remaining arguments (if any)
 try:
 	opts, args  = getopt.getopt(extraopts + sys.argv[1:],'df:ghnNr:R:l:Ls:t:')
-
 	for o, a in opts:
 		if o == '-d':
 			rfidiotglobals.Debug= True
@@ -191,7 +194,9 @@ try:
 			speed= int(a)
 		if o == '-t':
 			timeout= int(a)
-	card= RFIDIOt.rfidiot(readernum,readertype,line,speed,timeout,rfidiotglobals.Debug,noinit,nfcreader)
+	# Do not load any RFIDIOt.rfidiot object by default when the module loads.
+	# This trigger errors just by doing from rfidiot import RFIDIOt, which is deceiving.
+	# card= RFIDIOt.rfidiot(readernum,readertype,line,speed,timeout,rfidiotglobals.Debug,noinit,nfcreader)
 except getopt.GetoptError,e:
    		print "RFIDIOtconfig module ERROR: %s" % e
 		printoptions()
