@@ -1683,8 +1683,7 @@ class rfidiot:
 				count += 1
 			return True
 		if self.readertype == self.READER_LIBNFC:
-			print "not implemented!"
-			return False
+			raise RuntimeError('Not implemented')
 			apdu += self.PCSC_APDU['READ_BLOCK']
 			apdu= []
 			apdu += '%02X' % pynfc.MC_READ # mifare read
@@ -1762,6 +1761,8 @@ class rfidiot:
 			apdu.append('%02x' % (len(data) / 2)) # le
 			apdu.append(data)
 			return self.pcsc_send_apdu(apdu)
+		elif self.readtype == self.READER_LIBNFC:
+			raise RuntimeError('Not implemented')
 		else:
 			raise RuntimeError('Not implemented')
 	def writevalueblock(self,block,data):
